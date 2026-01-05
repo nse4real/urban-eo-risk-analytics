@@ -49,6 +49,7 @@ if page == "Overview":
 elif page == "Priority Table":
     st.subheader(f"Priority Table: {city}")
     st.write("Ranked administrative units with component breakdown and relative risk tiering.")
+    st.caption("Baseline weights: expansion 0.35, abruptness 0.25, exposure 0.20, infra 0.20")
     st.dataframe(
         df[
             [
