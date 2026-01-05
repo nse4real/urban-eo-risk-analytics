@@ -3,15 +3,18 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from projects.urban_growth_risk.src.boundaries import load_admin_units_stub
 
-def make_dummy_risk_table(seed: int = 42, n: int = 15) -> pd.DataFrame:
+
+def make_dummy_risk_table(city: str, seed: int = 42) -> pd.DataFrame:
     """
     Create a dummy admin-unit risk table with plausible component structure.
     This scaffolds the decision artifact before EO features are wired in.
     """
     rng = np.random.default_rng(seed)
 
-    admin_units = [f"Unit {i:02d}" for i in range(1, n + 1)]
+    admins = load_admin_units_stub(city)
+    n = len(admins)
 
     # Component scores in [0, 1]
     expansion_rate = rng.uniform(0.15, 0.95, size=n)
@@ -21,7 +24,8 @@ def make_dummy_risk_table(seed: int = 42, n: int = 15) -> pd.DataFrame:
 
     df = pd.DataFrame(
         {
-            "admin_unit": admin_units,
+            "admin_id": admins["admin_id"],
+            "admin_name": admins["admin_name"],
             "expansion_rate": expansion_rate,
             "abruptness": abruptness,
             "exposure": exposure,
@@ -54,10 +58,14 @@ def make_dummy_risk_table(seed: int = 42, n: int = 15) -> pd.DataFrame:
     df["risk_tier"] = tiers
 
     # Simple confidence flag proxy (placeholder until validation exists)
-    # More extreme scores -> higher confidence, middle -> medium
     df["confidence_flag"] = pd.cut(
         df["composite_score"],
-        bins=[-np.inf, df["composite_score"].quantile(0.33), df["composite_score"].quantile(0.66), np.inf],
+        bins=[
+            -np.inf,
+            df["composite_score"].quantile(0.33),
+            df["composite_score"].quantile(0.66),
+            np.inf,
+        ],
         labels=["Low", "Medium", "High"],
         include_lowest=True,
     ).astype(str)

@@ -27,7 +27,7 @@ city = st.sidebar.selectbox("City", ["London", "Lagos"])
 st.sidebar.markdown("---")
 st.sidebar.info("Tiers are relative within the selected city and time window.")
 
-df = make_dummy_risk_table(seed=42 if city == "London" else 7, n=15)
+df = make_dummy_risk_table(city=city, seed=42 if city == "London" else 7)
 
 if page == "Overview":
     st.subheader("What this tool is for")
@@ -51,7 +51,8 @@ elif page == "Priority Table":
     st.dataframe(
         df[
             [
-                "admin_unit",
+                "admin_id",
+                "admin_name",
                 "risk_tier",
                 "composite_score",
                 "expansion_rate",
