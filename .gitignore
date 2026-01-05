@@ -6,8 +6,12 @@ __pycache__/
 .env
 .venv
 
-# Data
-data/
+# Data (ignored by default)
+data/*
+
+# Keep data contracts / folder structure
+!data/boundaries/
+!data/boundaries/.gitkeep
 outputs/
 
 # Notebooks
