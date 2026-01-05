@@ -16,6 +16,7 @@ page = st.sidebar.radio(
     options=[
         "Overview",
         "Priority Table",
+        "Method Comparison",
         "Spatial Evidence",
         "Drivers & Components",
         "Validation & Confidence",
@@ -63,6 +64,66 @@ elif page == "Priority Table":
             ]
         ],
         use_container_width=True,
+    )
+
+elif page == "Method Comparison":
+    st.subheader("Method Comparison: Rapid vs Refined")
+    st.write(
+        """
+        This compares two approaches under operational constraints:
+        - **Rapid**: transparent weighted overlay (primary for 48–72 hour use)
+        - **Refined**: ML-style comparator (secondary, to test consistency)
+        The goal is not to claim ML is “better”. The goal is to identify where methods disagree.
+        """
+    )
+
+    df_cmp = df.copy()
+
+    # Ranking by each method
+    df_cmp["rank_overlay"] = df_cmp["susceptibility_score"].rank(ascending=False, method="min").astype(int)
+    df_cmp["rank_ml"] = df_cmp["ml_score"].rank(ascending=False, method="min").astype(int)
+
+    df_cmp["rank_delta"] = (df_cmp["rank_overlay"] - df_cmp["rank_ml"]).abs()
+
+    st.markdown("### Agreement check")
+    top_k = st.slider("Top-K zones to compare", 3, min(10, len(df_cmp)), 5, 1)
+
+    top_overlay = set(df_cmp.nsmallest(top_k, "rank_overlay")["zone"])
+    top_ml = set(df_cmp.nsmallest(top_k, "rank_ml")["zone"])
+
+    overlap = len(top_overlay.intersection(top_ml))
+    st.write(
+        {
+            "top_k": top_k,
+            "overlap_count": overlap,
+            "overlap_fraction": round(overlap / top_k, 2),
+        }
+    )
+
+    st.markdown("### Where methods disagree most")
+    st.dataframe(
+        df_cmp.sort_values("rank_delta", ascending=False)[
+            ["zone", "susceptibility_score", "ml_score", "rank_overlay", "rank_ml", "rank_delta", "top_drivers", "confidence_flag"]
+        ].head(10),
+        use_container_width=True,
+    )
+
+    st.markdown("### Operational guidance")
+    st.write(
+        """
+        **Use weighted overlay first when:**
+        - You need a defendable answer fast
+        - Stakeholders require interpretable drivers
+        - Data is incomplete or noisy
+        
+        **Lean on the ML comparator when:**
+        - You have time for feature QA and validation
+        - You need to test whether overlay rankings are robust
+        - You can explain model behaviour and uncertainty
+        
+        **Red flag zones:** high disagreement + high exposure.
+        Those should be prioritised for manual review or additional evidence checks.
+        """
     )
 
 elif page == "Spatial Evidence":

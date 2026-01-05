@@ -46,6 +46,10 @@ def make_dummy_flood_priority_table(seed: int = 24, n: int = 12) -> pd.DataFrame
         + df["exposure"] * weights["exposure"]
     )
 
+    # ML comparator score (dummy): correlated with overlay score + noise
+    noise = rng.normal(0, 0.08, size=n)
+    df["ml_score"] = (0.75 * df["susceptibility_score"] + 0.25 * df["s1_flood_signal"] + noise).clip(0, 1)
+
     df = df.sort_values("susceptibility_score", ascending=False).reset_index(drop=True)
 
     # Tiers relative within basin run
