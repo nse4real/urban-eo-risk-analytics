@@ -16,6 +16,7 @@ page = st.sidebar.radio(
     options=[
         "Overview",
         "Priority Table",
+        "Index Sensitivity",
         "Spatial Evidence",
         "Drivers & Components",
         "Validation & Confidence",
@@ -65,7 +66,71 @@ elif page == "Priority Table":
         ],
         use_container_width=True,
     )
+elif page == "Index Sensitivity":
+    st.subheader("Index Sensitivity")
+    st.write(
+        """
+        This page tests how robust the priority ranking is to reasonable changes in component weights.
+        It does not “optimise” weights. It makes assumptions explicit.
+        """
+    )
 
+    st.markdown("### Adjust weights (must sum to 1.0)")
+    c1, c2, c3, c4 = st.columns(4)
+
+    with c1:
+        w_expansion = st.slider("Expansion rate", 0.0, 1.0, 0.35, 0.05)
+    with c2:
+        w_abrupt = st.slider("Abruptness", 0.0, 1.0, 0.25, 0.05)
+    with c3:
+        w_exposure = st.slider("Exposure", 0.0, 1.0, 0.20, 0.05)
+    with c4:
+        w_infra = st.slider("Infrastructure constraint", 0.0, 1.0, 0.20, 0.05)
+
+    total = w_expansion + w_abrupt + w_exposure + w_infra
+    st.caption(f"Current sum: {total:.2f}")
+
+    if total == 0:
+        st.error("All weights are zero. Increase at least one weight.")
+    else:
+        # Normalise weights to sum to 1.0
+        w_expansion_n = w_expansion / total
+        w_abrupt_n = w_abrupt / total
+        w_exposure_n = w_exposure / total
+        w_infra_n = w_infra / total
+
+        st.markdown("### Normalised weights used")
+        st.write(
+            {
+                "expansion_rate": round(w_expansion_n, 3),
+                "abruptness": round(w_abrupt_n, 3),
+                "exposure": round(w_exposure_n, 3),
+                "infra_constraint": round(w_infra_n, 3),
+            }
+        )
+
+        # Recompute score and show rank changes
+        df_sens = df.copy()
+        df_sens["sensitivity_score"] = (
+            df_sens["expansion_rate"] * w_expansion_n
+            + df_sens["abruptness"] * w_abrupt_n
+            + df_sens["exposure"] * w_exposure_n
+            + df_sens["infra_constraint"] * w_infra_n
+        )
+        df_sens = df_sens.sort_values("sensitivity_score", ascending=False).reset_index(drop=True)
+        df_sens["new_rank"] = df_sens.index + 1
+
+        st.markdown("### Updated priority ranking")
+        cols = ["admin_id", "admin_name", "new_rank", "sensitivity_score", "top_drivers", "confidence_flag"]
+        st.dataframe(df_sens[cols], use_container_width=True)
+
+        st.markdown("### What to look for")
+        st.write(
+            """
+            - If the top-ranked units remain similar across plausible weight changes, prioritisation is robust.  
+            - If rankings swing wildly, the index is sensitive and should be treated as a screening tool only.
+            """
+        )
 elif page == "Spatial Evidence":
     st.subheader("Spatial Evidence")
     st.write("Placeholder. This page will show admin-unit choropleths and change evidence maps.")
@@ -85,5 +150,6 @@ elif page == "Limitations":
         - This is a decision-support index, not a legal determination of informality.
         - Tiers are relative within a city and time window.
         - Proxies and EO-derived signals carry uncertainty that must be interpreted with local context.
+
         """
     )
